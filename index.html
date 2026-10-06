@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartStock</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Notificações discretas -->
+  <div id="toast-container"></div>
+  <input type="file" id="input-import-file" accept=".json" style="display: none;">
+
+  <div class="container">
+
+    <!-- Cabeçalho Minimalista -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-dot"></span>
+        <span>SmartStock</span>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-ghost" id="btn-ver-schema">Schema SQL</button>
+        <button class="btn-ghost" id="btn-exportar-json">Exportar</button>
+        <button class="btn-ghost" id="btn-importar-json">Importar</button>
+        <button class="btn-ghost" id="btn-reset-seed">Restaurar</button>
+      </div>
+    </header>
+
+    <!-- Indicadores Compactos -->
+    <section class="kpi-row">
+      <div class="kpi-item">
+        <div class="kpi-label">Estoque Total</div>
+        <div class="kpi-num" id="kpi-estoque-val">0</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Com Desconto</div>
+        <div class="kpi-num" id="kpi-desconto-val">0</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Vencidos</div>
+        <div class="kpi-num" id="kpi-vencidos-val">0</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Reposição</div>
+        <div class="kpi-num" id="kpi-repor-val">0</div>
+      </div>
+      <div class="kpi-item">
+        <div class="kpi-label">Total Vendas</div>
+        <div class="kpi-num" id="kpi-vendas-val">R$ 0,00</div>
+      </div>
+    </section>
+
+    <!-- Painéis de Operações -->
+    <section class="forms-grid">
+
+      <!-- Venda -->
+      <div class="form-panel">
+        <h2 class="form-panel-title">Nova Venda</h2>
+        <form id="form-venda">
+          <div class="field">
+            <label for="venda-produto-id">Produto</label>
+            <select id="venda-produto-id" required></select>
+          </div>
+          <div class="field">
+            <label for="venda-quantidade">Quantidade</label>
+            <input type="number" id="venda-quantidade" min="1" value="1" required>
+          </div>
+          <div class="preview-badge" id="fefo-preview">
+            Selecione um produto
+          </div>
+          <button type="submit" class="btn-action btn-primary">Confirmar Venda</button>
+        </form>
+      </div>
+
+      <!-- Entrada de Lote -->
+      <div class="form-panel">
+        <h2 class="form-panel-title">Entrada de Lote</h2>
+        <form id="form-lote">
+          <div class="field">
+            <label for="lote-produto-id">Produto</label>
+            <select id="lote-produto-id" required></select>
+          </div>
+          <div class="field">
+            <label for="lote-numero">Lote</label>
+            <input type="text" id="lote-numero" placeholder="LT-001" required>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="lote-data-validade">Validade</label>
+              <input type="date" id="lote-data-validade" required>
+            </div>
+            <div class="field">
+              <label for="lote-quantidade">Quantidade</label>
+              <input type="number" id="lote-quantidade" min="1" placeholder="10" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-action btn-secondary">Salvar Lote</button>
+        </form>
+      </div>
+
+      <!-- Cadastro de Produto -->
+      <div class="form-panel">
+        <h2 class="form-panel-title">Novo Produto</h2>
+        <form id="form-produto">
+          <div class="field">
+            <label for="produto-nome">Nome</label>
+            <input type="text" id="produto-nome" placeholder="Nome do item" required>
+          </div>
+          <div class="field">
+            <label for="produto-categoria">Categoria</label>
+            <input type="text" id="produto-categoria" placeholder="Geral" value="Geral">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="produto-preco">Preço (R$)</label>
+              <input type="number" step="0.01" min="0.10" id="produto-preco" placeholder="0.00" required>
+            </div>
+            <div class="field">
+              <label for="produto-minimo">Estoque Mínimo</label>
+              <input type="number" min="1" id="produto-minimo" value="5" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-action btn-secondary">Salvar Produto</button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- Visualização de Dados em Abas -->
+    <section class="tabs-container">
+      <div class="tabs-bar">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tab-lotes" id="btn-tab-lotes">Lotes</button>
+          <button class="tab-btn" data-tab="tab-produtos" id="btn-tab-produtos">Produtos</button>
+          <button class="tab-btn" data-tab="tab-vendas" id="btn-tab-vendas">Histórico de Vendas</button>
+        </div>
+
+        <div class="tab-search-box" id="lotes-filter-bar">
+          <input type="text" id="busca-lote" class="tab-search-input" placeholder="Buscar lote ou item...">
+          <select id="filtro-lote-status" class="tab-select">
+            <option value="todos">Todos</option>
+            <option value="promocao">Com Desconto</option>
+            <option value="normal">No Prazo</option>
+            <option value="vencidos">Vencidos</option>
+            <option value="ativos">Com Saldo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Aba 1: Lotes -->
+      <div class="tab-content active" id="tab-lotes">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Lote</th>
+              <th>Validade</th>
+              <th>Prazo</th>
+              <th>Qtd</th>
+              <th>Preço Base</th>
+              <th>Preço Atual</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-lotes-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Aba 2: Produtos -->
+      <div class="tab-content" id="tab-produtos">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Preço</th>
+              <th>Mínimo</th>
+              <th>Estoque Atual</th>
+              <th>Situação</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-produtos-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Aba 3: Vendas -->
+      <div class="tab-content" id="tab-vendas">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Produto</th>
+              <th>Lote</th>
+              <th>Qtd</th>
+              <th>Desconto</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-vendas-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modal Schema SQL -->
+  <div class="modal-overlay" id="modal-schema">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Schema Relacional (SQL)</h3>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="code-block" id="sql-code-element">-- TABELA DE PRODUTOS
+CREATE TABLE IF NOT EXISTS produtos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo_sku VARCHAR(50) UNIQUE,
+    nome TEXT NOT NULL,
+    categoria TEXT DEFAULT 'Geral',
+    preco REAL NOT NULL,
+    estoque_minimo INTEGER NOT NULL DEFAULT 5
+);
+
+-- TABELA DE LOTES
+CREATE TABLE IF NOT EXISTS lotes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    produto_id INTEGER NOT NULL,
+    numero_lote TEXT NOT NULL,
+    data_validade DATE NOT NULL,
+    quantidade INTEGER NOT NULL CHECK (quantidade >= 0),
+    status VARCHAR(20) DEFAULT 'ATIVO',
+    FOREIGN KEY (produto_id) REFERENCES produtos (id)
+);
+
+-- TABELA DE VENDAS
+CREATE TABLE IF NOT EXISTS vendas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    produto_id INTEGER NOT NULL,
+    lote_id INTEGER NOT NULL,
+    quantidade INTEGER NOT NULL,
+    valor_pago REAL NOT NULL,
+    desconto_aplicado REAL NOT NULL,
+    data_venda DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (produto_id) REFERENCES produtos (id),
+    FOREIGN KEY (lote_id) REFERENCES lotes (id)
+);</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="btn-copiar-sql">Copiar SQL</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
